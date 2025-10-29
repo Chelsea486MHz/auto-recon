@@ -1,0 +1,228 @@
+services:
+  # OWASP Juice Shop - Modern Node.js/Express application
+  juiceshop:
+    image: bkimminich/juice-shop
+    container_name: test-juiceshop
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # DVWA - PHP/MySQL vulnerable web app
+  dvwa:
+    image: vulnerables/web-dvwa
+    container_name: test-dvwa
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # WebGoat - Java/Spring vulnerable web app
+  webgoat:
+    image: webgoat/webgoat
+    container_name: test-webgoat
+    ports:
+      - "8081:8080"
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # Mutillidae - PHP vulnerable web app with many OWASP vulnerabilities
+  mutillidae:
+    image: citizenstig/nowasp
+    container_name: test-mutillidae
+    ports:
+      - "8082:80"
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # WordPress - CMS for testing fingerprinting
+  wordpress:
+    image: wordpress:5.8-apache
+    container_name: test-wordpress
+    ports:
+      - "8083:80"
+    environment:
+      WORDPRESS_DB_HOST: mysql-wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    restart: unless-stopped
+    depends_on:
+      - mysql-wordpress
+    networks:
+      - autorecon-test-network
+
+  # WordPress MySQL database
+  mysql-wordpress:
+    image: mysql:5.7
+    container_name: test-mysql-wordpress
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: rootpassword
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # Old Apache + PHP for version detection testing
+  oldphp:
+    image: php:5.6-apache
+    container_name: test-oldphp
+    ports:
+      - "8084:80"
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # Nginx for different web server testing
+  nginx:
+    image: nginx:1.19-alpine
+    container_name: test-nginx
+    ports:
+      - "8085:80"
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # ==================== DATABASES ====================
+
+  # MySQL 5.7 - For SQL enumeration testing
+  mysql:
+    image: mysql:5.7
+    container_name: test-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpass
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # PostgreSQL - For PostgreSQL enumeration testing
+  postgres:
+    image: postgres:9.6
+    container_name: test-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: testuser
+      POSTGRES_DB: testdb
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # Microsoft SQL Server - For MSSQL enumeration testing
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: test-mssql
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "StrongP@ssw0rd123"
+      MSSQL_PID: "Express"
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # ==================== FTP SERVICES ====================
+
+  # vsftpd - FTP server for FTP enumeration testing
+  ftp:
+    image: fauria/vsftpd
+    container_name: test-ftp
+    ports:
+      - "21:21"
+      - "21000-21010:21000-21010"
+    environment:
+      FTP_USER: ftpuser
+      FTP_PASS: ftppass
+      PASV_ADDRESS: 127.0.0.1
+      PASV_MIN_PORT: 21000
+      PASV_MAX_PORT: 21010
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # ==================== SSH SERVICES ====================
+
+  # OpenSSH Server - For SSH enumeration and banner grabbing
+  openssh:
+    image: linuxserver/openssh-server
+    container_name: test-openssh
+    ports:
+      - "2222:2222"
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: Europe/London
+      PASSWORD_ACCESS: "true"
+      USER_PASSWORD: password
+      USER_NAME: testuser
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # ==================== SMB/SAMBA SERVICES ====================
+
+  # Samba - For SMB enumeration testing
+  samba:
+    image: dperson/samba
+    container_name: test-samba
+    ports:
+      - "139:139"
+      - "445:445"
+    environment:
+      - TZ=Europe/London
+      - USERID=1000
+      - GROUPID=1000
+    command: '-u "smbuser;smbpass" -s "share;/share;yes;no;no;smbuser" -p'
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # ==================== SMTP SERVICES ====================
+
+  # Mailcatcher - SMTP server for SMTP enumeration
+  mailcatcher:
+    image: sj26/mailcatcher
+    container_name: test-smtp
+    ports:
+      - "1025:1025"  # SMTP
+      - "1080:1080"  # Web UI
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+  # ==================== DNS SERVICES ====================
+
+  # BIND DNS Server - For DNS enumeration testing
+  bind:
+    image: ubuntu/bind9
+    container_name: test-dns
+    ports:
+      - "5353:53/tcp"
+      - "5353:53/udp"
+    environment:
+      - TZ=Europe/London
+      - BIND9_USER=root
+    restart: unless-stopped
+    networks:
+      - autorecon-test-network
+
+networks:
+  autorecon-test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
